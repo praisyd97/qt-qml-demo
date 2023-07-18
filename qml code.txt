@@ -1,0 +1,165 @@
+import QtQuick 2.15
+import QtMultimedia 5.15
+
+Rectangle {
+    width: 800
+    height: 600
+    color: "black"
+
+    MediaPlayer {
+        id: mediaPlayer
+        autoPlay: false
+    }
+
+    VideoOutput {
+        id: videoOutput
+        anchors.fill: parent
+        source: mediaPlayer
+    }
+
+    Slider {
+        id: progressSlider
+        anchors {
+            left: parent.left
+            right: parent.right
+            bottom: controlBar.top
+        }
+        value: mediaPlayer.position
+        maximumValue: mediaPlayer.duration
+        onValueChanged: mediaPlayer.position = value
+    }
+
+    Rectangle {
+        id: playPauseButton
+        width: 80
+        height: 40
+        color: "lightgray"
+        border.width: 1
+        border.color: "black"
+        radius: 5
+
+        Text {
+            anchors.centerIn: parent
+            text: mediaPlayer.playbackState === MediaPlayer.PlayingState ? "Pause" : "Play"
+            font.pixelSize: 16
+        }
+
+        MouseArea {
+            anchors.fill: parent
+            onClicked: mediaPlayer.playbackState === MediaPlayer.PlayingState ? mediaPlayer.pause() : mediaPlayer.play()
+        }
+    }
+
+    Rectangle {
+        id: controlBar
+        width: parent.width
+        height: 40
+        anchors.bottom: parent.bottom
+        color: "lightgray"
+        border.width: 1
+        border.color: "black"
+
+        Row {
+            anchors.centerIn: parent
+
+            Rectangle {
+                width: 80
+                height: 40
+                color: "transparent"
+
+                Text {
+                    anchors.centerIn: parent
+                    text: "Open"
+                    font.pixelSize: 16
+                }
+
+                MouseArea {
+                    anchors.fill: parent
+                    onClicked: {
+                        fileDialog.visible = true
+                    }
+                }
+            }
+
+            Item {
+                width: 80
+                height: 40
+            }
+        }
+    }
+
+    Rectangle {
+        id: fileDialog
+        width: parent.width
+        height: parent.height
+        color: "transparent"
+        visible: false
+
+        Rectangle {
+            width: 400
+            height: 300
+            color: "lightgray"
+            border.width: 1
+            border.color: "black"
+            radius: 5
+
+            Text {
+                text: "Select Video"
+                font.pixelSize: 20
+                anchors.horizontalCenter: parent.horizontalCenter
+                topMargin: 20
+            }
+
+            ListView {
+                id: fileListView
+                width: parent.width - 40
+                height: parent.height - 120
+                anchors.horizontalCenter: parent.horizontalCenter
+                anchors.top: dialogTitle.bottom
+                anchors.topMargin: 20
+                spacing: 10
+                model: fileModel
+
+                delegate: Rectangle {
+                    width: fileListView.width
+                    height: 40
+                    color: ListView.isCurrentItem ? "lightblue" : "white"
+                    Text {
+                        anchors.centerIn: parent
+                        text: fileName
+                        font.pixelSize: 16
+                    }
+                    MouseArea {
+                        anchors.fill: parent
+                        onClicked: {
+                            mediaPlayer.source = fileUrl
+                            fileDialog.visible = false
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    ListModel {
+        id: fileModel
+    }
+
+    Component.onCompleted: {
+        var folder = Qt.resolvedUrl(".")
+        var nameFilters = ["*.mp4", "*.avi"]
+
+        folder.forEach(function(file) {
+            if (file.isDir) {
+                var dir = file.fileName
+                var entryList = file.entryList(nameFilters, QDir.Files)
+                entryList.forEach(function(entry) {
+                    fileModel.append({
+                        fileName: entry,
+                        fileUrl: folder + "/" + dir + "/" + entry
+                    })
+                })
+            }
+        })
+    }
+}
